@@ -4,7 +4,7 @@
 
 TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 playback. It uses RLE + Rice coding for compactness and supports XOR-based delta frames (I/P structure). Compression is done on PC (C#), and playback is handled by ESP32.
 
-**Target resolution: 128×64 pixels (fixed).**
+**Target resolution: 128×64 pixels (recommended).**
 
 ---
 
