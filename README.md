@@ -28,8 +28,8 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 | 0                             | Magic       | 4 | "TMG1" (0x54 0x4D 0x47 0x31)            |
 | 4                             | Version     | 1 | 0x01                                    |
 | 5                             | Flags       | 1 | bit0: MSB-first, bit1: delta default on |
-| 6                             | Width       | 2 | uint16 (fixed 128, little-endian)       |
-| 8                             | Height      | 2 | uint16 (fixed 64, little-endian)        |
+| 6                             | Width       | 2 | uint16 (little-endian)       |
+| 8                             | Height      | 2 | uint16 (little-endian)        |
 | 10                            | TimebaseNum | 2 | e.g. 1                                  |
 | 12                            | TimebaseDen | 2 | e.g. 30 (for 30fps)                     |
 | 14                            | KeyInterval | 2 | key frame interval (e.g. 60)            |
@@ -61,7 +61,7 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 
 ## Payload (RLE + Rice encoded)
 
-Each frame consists of 64 scanlines (fixed height). Each line contains run-lengths encoded with Rice codes.
+Each frame consists of multi scanlines. Each line contains run-length encoded with Rice codes.
 
 ### Line Structure
 
@@ -75,7 +75,7 @@ Each frame consists of 64 scanlines (fixed height). Each line contains run-lengt
 
   * optional StartBit (1 bit) if FrameFlags.bit0 = 1
   * optional RiceK (3 bits) if FrameFlags.bit1 = 1
-  * sequence of Rice-coded run lengths (alternate 0/1 fills until width = 128)
+  * sequence of Rice-coded run lengths (alternate 0/1 fills until width)
 
 ### I-Frame
 
@@ -103,10 +103,9 @@ Only changed lines have LineType = 1; unchanged lines reuse previous frame’s d
 2. For each frame:
 
    * Read FrameHeader.
-   * For each line (64 total):
-
+   * For each line:
      * If P-frame and LineType=0 → copy previous line.
-     * Otherwise decode Rice runs and rebuild pixels (width 128).
+     * Otherwise decode Rice runs and rebuild pixels.
    * XOR with previous frame if P-frame.
    * Display frame.
 
@@ -117,7 +116,7 @@ Only changed lines have LineType = 1; unchanged lines reuse previous frame’s d
 | Field Recommended Value |                                |
 | ----------------------- | ------------------------------ |
 | Bit order               | MSB-first                      |
-| Width / Height          | 128×64 (fixed)                 |
+| Width / Height          | 128×64                         |
 | KeyInterval             | 60                             |
 | Rice k                  | 1 (default), per-line optional |
 | StartBit                | 0 default                      |
