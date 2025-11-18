@@ -54,7 +54,7 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 | FrameType              | u8      | 0 = I-frame, 1 = P-frame (XOR delta)                |
 | PTSDelta               | ULEB128 | delta time from previous frame                      |
 | PayloadSize            | ULEB128 | size of compressed data                             |
-| FrameFlags             | u8      | bit0: has start bit per line, bit1: per-line Rice k |
+| FrameFlags             | u8      | bit0: has start bit per line, bit1: per-line Rice k, bit2: per-frame Rice k (bit1 and bit2 are mutually exclusive) |
 | Reserved               | u8      | reserved for future use (0x00)                      |
 
 ---
@@ -74,8 +74,19 @@ Each frame consists of multi scanlines. Each line contains run-length encoded wi
 * **LineData**:
 
   * optional StartBit (1 bit) if FrameFlags.bit0 = 1
-  * optional RiceK (3 bits) if FrameFlags.bit1 = 1
+  * optional RiceK (3 bits) if FrameFlags.bit1 = 1 (per-line mode)
   * sequence of Rice-coded run lengths (alternate 0/1 fills until width)
+
+### Frame-level Data (Per-frame mode)
+
+If `FrameFlags.bit2` is set, the payload has a slightly different structure:
+
+```
+[FrameRiceK][Line...][Line...]...
+```
+
+* **FrameRiceK**: A single 3-bit Rice `k` parameter for the entire frame.
+* **LineData**: In this mode, lines do not contain individual `RiceK` values.
 
 ### I-Frame
 
