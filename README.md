@@ -55,7 +55,7 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 | PTSDelta               | ULEB128 | delta time from previous frame                      |
 | PayloadSize            | ULEB128 | size of compressed data                             |
 | FrameFlags             | u8      | bit0: has start bit per line, bit1: per-line Rice k, bit2: per-frame Rice k (bit1 and bit2 are mutually exclusive) |
-| Reserved               | u8      | reserved for future use (0x00)                      |
+| PredictionMethod       | u8      | `0`: None, `1`: Up, `2`: Left                      |
 
 ---
 
@@ -134,8 +134,36 @@ Only changed lines have LineType = 1; unchanged lines reuse previous frame’s d
 
 ---
 
+## Prediction Filtering
+
+To improve compression efficiency, TMG1 can apply a prediction filter to the frame data (or delta data for P-frames) before it is compressed with RLE + Rice coding. The encoder dynamically selects the best prediction method for each frame to minimize the size of the compressed payload.
+
+The selected method is stored in the `PredictionMethod` field of the `FrameHeader`.
+
+### Prediction Methods
+
+| ID  | Method | Description                                      |
+| --- | ------ | ------------------------------------------------ |
+| `0` | None   | No filter is applied.                            |
+| `1` | Up     | `filtered[y] = raw[y] ^ raw[y-1]` (byte-wise)    |
+| `2` | Left   | `filtered[x] = raw[x] ^ raw[x-1]` (byte-wise)    |
+
+### Encoder Behavior
+
+- For each frame, the encoder tries compressing the data with all three prediction methods (None, Up, Left).
+- It then compares the resulting payload sizes and selects the method that yields the smallest size.
+- The ID of the chosen method is written to the `PredictionMethod` field in the frame header.
+
+### Decoder Behavior
+
+- The decoder must read the `PredictionMethod` field from the frame header.
+- After decompressing the payload to get the filtered data, it must apply the corresponding inverse filter to reconstruct the original pixel data.
+  - For `Up`, the inverse operation is `raw[y] = filtered[y] ^ raw[y-1]`.
+  - For `Left`, the inverse operation is `raw[x] = filtered[x] ^ raw[x-1]`.
+
+---
+
 ## Notes
 
-* **Reserved** byte in FrameHeader is kept for future extensions (CRC, compression mode flags, etc.)
 * Each frame is line-independent for robust error recovery.
 * Typical 128×64 frame: ~2–250 bytes depending on motion.
