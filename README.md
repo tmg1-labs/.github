@@ -27,7 +27,7 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 | ----------------------------- | ----------- | - | --------------------------------------- |
 | 0                             | Magic       | 4 | "TMG1" (0x54 0x4D 0x47 0x31)            |
 | 4                             | Version     | 1 | 0x01                                    |
-| 5                             | Flags       | 1 | bit0: MSB-first, bit1: delta default on |
+| 5                             | Flags       | 1 | bit0: MSB-first, bit1: delta default on, bit2: Range Coder enabled |
 | 6                             | Width       | 2 | uint16 (little-endian)       |
 | 8                             | Height      | 2 | uint16 (little-endian)        |
 | 10                            | TimebaseNum | 2 | e.g. 1                                  |
@@ -59,11 +59,15 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 
 ---
 
-## Payload (RLE + Rice encoded)
+## Payload (RLE + Entropy encoded)
 
-Each frame consists of multi scanlines. Each line contains run-length encoded with Rice codes.
+The method used for entropy encoding is determined by the `Flags` field in the `FileHeader`.
 
-### Line Structure
+### Rice Coder Payload (Default)
+
+When Range Coder is disabled, the payload is compressed using Run-Length Encoding (RLE) followed by Golomb-Rice coding. Each frame consists of multi scanlines, and each line contains Rice-coded run lengths.
+
+#### Line Structure
 
 ```
 [LineType][(if 1) LineData]
@@ -77,7 +81,7 @@ Each frame consists of multi scanlines. Each line contains run-length encoded wi
   * optional RiceK (3 bits) if FrameFlags.bit1 = 1 (per-line mode)
   * sequence of Rice-coded run lengths (alternate 0/1 fills until width)
 
-### Frame-level Data (Per-frame mode)
+#### Frame-level Data (Per-frame mode)
 
 If `FrameFlags.bit2` is set, the payload has a slightly different structure:
 
@@ -88,13 +92,38 @@ If `FrameFlags.bit2` is set, the payload has a slightly different structure:
 * **FrameRiceK**: A single 3-bit Rice `k` parameter for the entire frame.
 * **LineData**: In this mode, lines do not contain individual `RiceK` values.
 
+### Range Coder Payload
+
+When `FileHeader.Flags.bit2` is set, the payload is **not** RLE-encoded. Instead, the entire pre-RLE bitplane data (after prediction filtering) is treated as a single stream of bits and compressed using a **Range Coder**.
+
+The Range Coder is a form of arithmetic coding that can achieve higher compression ratios than Golomb-Rice coding, especially for data where the probability of bits is not close to 50%, at the cost of higher computational complexity.
+
+#### Technical Details
+
+- **Adaptive Frequency Model with Context**: The coder uses an adaptive frequency model (`FrequencyModel`) to dynamically estimate the probability of the next bit being a 0 or a 1. To further improve compression, it employs a **first-order context model**. This means the probability distribution for the current bit is chosen based on the value of the preceding bit.
+  - The model maintains two separate frequency distributions: one for when the previous bit was `0`, and one for when it was `1`.
+  - Each model is initialized with a uniform distribution (50/50 probability).
+  - After encoding or decoding a bit, only the frequency counts corresponding to the correct context are updated.
+  - To prevent overflow and adapt to changing data statistics, the frequency counts are periodically rescaled (halved) when a total count threshold is reached.
+
+- **Coding Process**: The core of the coder maintains a numerical range defined by two 64-bit integers:
+  - `low`: The bottom of the current range.
+  - `range`: The width of the current range.
+
+  To encode a bit, this range is narrowed based on the bit's probability, as estimated by the frequency model. The `low` value gradually forms the compressed bitstream.
+
+- **Normalization**: As the `range` becomes smaller, its precision decreases. To counteract this, the coder performs normalization. When the `range` falls below a certain threshold, the most significant bytes of `low` are shifted out to the compressed stream, and the `range` is shifted left to restore its magnitude. The decoder performs the inverse operation, shifting in bytes from the stream to maintain synchronization.
+
 ### I-Frame
 
-All 64 lines are encoded (LineType = 1).
+- **Rice Coder**: All 64 lines are encoded (LineType = 1).
+- **Range Coder**: The entire bitplane is fed to the Range Coder.
 
 ### P-Frame
 
-Only changed lines have LineType = 1; unchanged lines reuse previous frame’s data.
+- **Rice Coder**: Only changed lines have LineType = 1; unchanged lines reuse previous frame’s data.
+- **Range Coder**: The XOR delta data of the entire bitplane is fed to the Range Coder. Unchanged frames are still skipped via VFR, but partial updates are not supported. If Range Coder is active, P-frames contain the full delta.
+
 
 ---
 
