@@ -2,7 +2,7 @@
 
 ## Overview
 
-TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 playback. It uses RLE + Rice coding for compactness and supports XOR-based delta frames (I/P structure). Compression is done on PC (C#), and playback is handled by ESP32.
+TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 playback. It uses RLE + Rice coding for compactness and supports XOR-based delta frames (I/P structure). Compression is done on PC by the Rust CLI (`tmg1-cli`) on top of the shared C++ codec library (`tmg1-codec`), and playback is handled by ESP32. (The former .NET/C# encoder is discontinued.)
 
 **Target resolution: 128×64 pixels (recommended).**
 
@@ -26,8 +26,8 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 | Offset Field Size Description |             |   |                                         |
 | ----------------------------- | ----------- | - | --------------------------------------- |
 | 0                             | Magic       | 4 | "TMG1" (0x54 0x4D 0x47 0x31)            |
-| 4                             | Version     | 1 | 0x01                                    |
-| 5                             | Flags       | 1 | bit0: MSB-first, bit1: delta default on, bit2: Range Coder enabled |
+| 4                             | Version     | 1 | 0x02                                    |
+| 5                             | Flags       | 1 | bit0: MSB-first, bit1: reserved (unused), bit2: Range Coder enabled |
 | 6                             | Width       | 2 | uint16 (little-endian)       |
 | 8                             | Height      | 2 | uint16 (little-endian)        |
 | 10                            | TimebaseNum | 2 | e.g. 1                                  |
@@ -55,7 +55,7 @@ TMG1 is a lightweight 1-bit monochrome video data format optimized for ESP32 pla
 | PTSDelta               | ULEB128 | delta time from previous frame                      |
 | PayloadSize            | ULEB128 | size of compressed data                             |
 | FrameFlags             | u8      | bit0: has start bit per line, bit1: per-line Rice k, bit2: per-frame Rice k (bit1 and bit2 are mutually exclusive) |
-| PredictionMethod       | u8      | `0`: None, `1`: Up, `2`: Left                      |
+| PredictionMethod       | u8      | `0`: None, `1`: Left, `2`: Up                      |
 
 ---
 
@@ -94,7 +94,7 @@ If `FrameFlags.bit2` is set, the payload has a slightly different structure:
 
 ### Range Coder Payload
 
-When `FileHeader.Flags.bit2` is set, the payload is **not** RLE-encoded. Instead, the entire pre-RLE bitplane data (after prediction filtering) is treated as a single stream of bits and compressed using a **Range Coder**.
+When `FileHeader.Flags.bit2` is set, the payload is **not** RLE-encoded. Instead, the bitplane data (after prediction filtering) is compressed line by line using a **Range Coder**: each line begins with a 1-bit line type (1 = has data, 0 = empty line, skipped), and for data lines the `width` pixel bits are then coded in order. The empty-line skip is shared with the Rice path.
 
 The Range Coder is a form of arithmetic coding that can achieve higher compression ratios than Golomb-Rice coding, especially for data where the probability of bits is not close to 50%, at the cost of higher computational complexity.
 
@@ -116,8 +116,8 @@ The Range Coder is a form of arithmetic coding that can achieve higher compressi
 
 ### I-Frame
 
-- **Rice Coder**: All 64 lines are encoded (LineType = 1).
-- **Range Coder**: The entire bitplane is fed to the Range Coder.
+- **Rice Coder**: Only lines that contain data are encoded (LineType = 1); empty (all-zero) lines are still marked LineType = 0 even in I-frames.
+- **Range Coder**: The entire bitplane is fed to the Range Coder (with the same per-line empty-line skip).
 
 ### P-Frame
 
@@ -174,12 +174,12 @@ The selected method is stored in the `PredictionMethod` field of the `FrameHeade
 | ID  | Method | Description                                      |
 | --- | ------ | ------------------------------------------------ |
 | `0` | None   | No filter is applied.                            |
-| `1` | Up     | `filtered[y] = raw[y] ^ raw[y-1]` (byte-wise)    |
-| `2` | Left   | `filtered[x] = raw[x] ^ raw[x-1]` (byte-wise)    |
+| `1` | Left   | `filtered[x] = raw[x] ^ raw[x-1]` (byte-wise)    |
+| `2` | Up     | `filtered[y] = raw[y] ^ raw[y-1]` (byte-wise)    |
 
 ### Encoder Behavior
 
-- For each frame, the encoder tries compressing the data with all three prediction methods (None, Up, Left).
+- For each frame, the encoder tries compressing the data with all three prediction methods (None, Left, Up).
 - It then compares the resulting payload sizes and selects the method that yields the smallest size.
 - The ID of the chosen method is written to the `PredictionMethod` field in the frame header.
 
@@ -187,8 +187,8 @@ The selected method is stored in the `PredictionMethod` field of the `FrameHeade
 
 - The decoder must read the `PredictionMethod` field from the frame header.
 - After decompressing the payload to get the filtered data, it must apply the corresponding inverse filter to reconstruct the original pixel data.
-  - For `Up`, the inverse operation is `raw[y] = filtered[y] ^ raw[y-1]`.
   - For `Left`, the inverse operation is `raw[x] = filtered[x] ^ raw[x-1]`.
+  - For `Up`, the inverse operation is `raw[y] = filtered[y] ^ raw[y-1]`.
 
 ---
 
