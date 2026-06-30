@@ -14,7 +14,7 @@ supports XOR-based delta frames (I/P structure). Compression is performed on a
 PC by the Rust CLI ([`tmg1-cli`](https://github.com/tmg1-labs/tmg1-cli)) on top
 of the shared C++ codec library
 ([`tmg1-codec`](https://github.com/tmg1-labs/tmg1-codec)); playback is handled
-on the ESP32 by [`tmg1-arduino`](https://github.com/tmg1-labs/tmg1-arduino).
+on the ESP32 by [`tmg1-esp32-demo`](https://github.com/tmg1-labs/tmg1-esp32-demo).
 
 **Recommended target resolution: 128×64 pixels.**
 

@@ -12,7 +12,7 @@ codec is used on both sides so the encoder and decoder never drift apart.
 | Repository | Language | Role |
 | ---------- | -------- | ---- |
 | [**tmg1-codec**](https://github.com/tmg1-labs/tmg1-codec) | C++17 | Shared codec library (encoder/decoder). Used by both the firmware and the CLI via a C FFI. |
-| [**tmg1-arduino**](https://github.com/tmg1-labs/tmg1-arduino) | C++ / PlatformIO | ESP32 firmware: reads a `.tmg1` file from flash and plays it on a U8g2 OLED. |
+| [**tmg1-esp32-demo**](https://github.com/tmg1-labs/tmg1-esp32-demo) | C++ / PlatformIO | ESP32 firmware: reads a `.tmg1` file from flash and plays it on a U8g2 OLED. |
 | [**tmg1-cli**](https://github.com/tmg1-labs/tmg1-cli) | Rust | Command-line encoder/transcoder (ffmpeg pipeline → `.tmg1`). |
 
 ## Format Specification

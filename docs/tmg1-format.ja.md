@@ -14,7 +14,7 @@ XOR ベースの差分フレーム（I/P 構造）に対応します。圧縮は
 （[`tmg1-cli`](https://github.com/tmg1-labs/tmg1-cli)）が共通 C++ コーデック
 ライブラリ（[`tmg1-codec`](https://github.com/tmg1-labs/tmg1-codec)）の上で行い、
 再生は ESP32 上で
-[`tmg1-arduino`](https://github.com/tmg1-labs/tmg1-arduino) が担当します。
+[`tmg1-esp32-demo`](https://github.com/tmg1-labs/tmg1-esp32-demo) が担当します。
 
 **推奨解像度: 128×64 ピクセル。**
 
