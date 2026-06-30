@@ -55,4 +55,3 @@ address the issue before any public disclosure.
 
 数日以内の受領連絡を目指します。ボランティア運営のため、修正時期はベストエフォートです。
 公開前に対応のための妥当な猶予をいただけると助かります。
-</content>

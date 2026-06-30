@@ -31,4 +31,3 @@ codec is used on both sides so the encoder and decoder never drift apart.
 ## License
 
 Each repository is published under the MIT License.
-</content>

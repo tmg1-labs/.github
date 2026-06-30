@@ -15,4 +15,3 @@ the canonical TMG1 format specification.
   (日本語).
 - [`SECURITY.md`](SECURITY.md) — security policy applied across the
   organization's repositories.
-</content>

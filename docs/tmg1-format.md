@@ -207,5 +207,3 @@ after decompression.
 
 - Each frame is line-independent for robust error recovery.
 - A typical 128×64 frame is ~2–250 bytes depending on motion.
-</content>
-</invoke>
