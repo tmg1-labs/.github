@@ -17,8 +17,8 @@ codec is used on both sides so the encoder and decoder never drift apart.
 
 ## Format Specification
 
-- [TMG1 Format Specification (English)](docs/tmg1-format.md)
-- [TMG1 フォーマット仕様書（日本語）](docs/tmg1-format.ja.md)
+- [TMG1 Format Specification (English)](https://github.com/tmg1-labs/.github/blob/main/docs/tmg1-format.md)
+- [TMG1 フォーマット仕様書（日本語）](https://github.com/tmg1-labs/.github/blob/main/docs/tmg1-format.ja.md)
 
 ## Highlights
 

@@ -1,6 +1,17 @@
 # 現在の作業コンテキスト
 
-最終更新: 2026-07-01（4リポジトリともGitHub `tmg1-labs` へpush済み。本リポジトリも公開済み）
+最終更新: 2026-07-03（`profile/README.md` の仕様書リンク修正・push済み）
+
+## 今やっていること
+- **`profile/README.md` の仕様書リンク修正**（2026-07-03、push済み）。
+  - 症状: `profile/README.md`（`profile/` 配下）から `docs/tmg1-format.md` /
+    `docs/tmg1-format.ja.md` へルート基準の相対パスでリンクしていたため、通常のリポジトリ
+    閲覧では `profile/docs/...` を指してしまい404になっていた。
+  - さらに `profile/README.md` は Organization プロフィールページとしても表示される特殊
+    ファイルで、GitHub仕様上そのページでは相対リンクが正しく解決されない制約がある
+    （詳細は `known-issues.md` 参照）。
+  - 修正: 両リンクを `https://github.com/tmg1-labs/.github/blob/main/docs/tmg1-format.md` /
+    `...ja.md` の絶対URLに変更。ルート `README.md` は元々ルート基準で正しいため変更なし。
 
 ## 今やっていること（過去分・組織公開準備）
 - **GitHub組織 `tmg1-labs` の作成**（2026-06-29〜）。

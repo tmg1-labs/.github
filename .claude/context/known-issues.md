@@ -2,6 +2,21 @@
 
 > 過去のエラー解決の原文は `errors-log.md`。ここはハマりやすい地雷の要点を集約する。
 
+## ドキュメント
+
+### `profile/README.md` はサブディレクトリ配下＋Organizationプロフィール表示の二重の制約を受ける
+- **内容**: `profile/README.md` はリポジトリ内では `profile/` というサブディレクトリに置かれる
+  一方、GitHubの仕様で `.github` リポジトリの `profile/README.md` は Organization のプロフィール
+  ページとしてもそのまま表示される特殊ファイル。
+- **地雷1（相対パスの基準）**: 通常のリポジトリ閲覧（blob表示）では相対リンクはファイル自身の
+  ディレクトリ基準で解決される。`profile/README.md` から `docs/tmg1-format.md` と書くと
+  `profile/docs/tmg1-format.md` を指してしまい404になる（正しくは `../docs/tmg1-format.md`）。
+- **地雷2（プロフィールページでの相対リンク破綻）**: GitHub公式ドキュメントによれば、
+  Organizationプロフィールページ上では相対リンク・相対画像パスが正しく解決されない。
+- **回避策**: `profile/README.md` 内のリンクは相対パスではなく
+  `https://github.com/tmg1-labs/.github/blob/main/...` のような絶対URLで書く
+  （2026-07-03、`docs/tmg1-format.md`/`ja.md` へのリンクで実際に発生・修正）。
+
 ## リポジトリ公開順序の制約
 
 ### 相対URL submoduleの解決はsuperprojectのoriginに依存する
